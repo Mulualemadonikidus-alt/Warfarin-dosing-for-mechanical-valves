@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warfarin Dosing Guide</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #eff6ff;
+            --success: #15803d;
+            --success-bg: #f0fdf4;
+            --warning: #b45309;
+            --warning-bg: #fffbeb;
+            --danger: #b91c1c;
+            --danger-bg: #fef2f2;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f3f4f6;
+            color: var(--text);
+            line-height: 1.5;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: var(--primary);
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .disclaimer-box {
+            background-color: var(--warning-bg);
+            border-left: 4px solid var(--warning);
+            padding: 12px;
+            margin: 16px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--warning);
+        }
+
+        .form-group {
+            padding: 0 16px 16px 16px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        input:focus {
+            outline: 2px solid var(--primary);
+        }
+
+        .btn {
+            display: block;
+            width: calc(100% - 32px);
+            margin: 8px 16px 20px 16px;
+            padding: 14px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .result-card {
+            margin: 0 16px 20px 16px;
+            padding: 16px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-status {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .result-instruction {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .status-in-range {
+            background-color: var(--success-bg);
+            border: 1px solid var(--success);
+            color: var(--success);
+            display: block;
+        }
+
+        .status-modifying {
+            background-color: var(--warning-bg);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            display: block;
+        }
+
+        .status-critical {
+            background-color: var(--danger-bg);
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Warfarin Dosing Assistant</h1>
+        <p>Clinical Titration Support Tool</p>
+    </div>
+
+    <div class="disclaimer-box">
+        <strong>⚠️ MEDICAL DISCLAIMER:</strong> This application is a clinical decision support reference based on standard guidelines. It does not replace independent clinical judgment or direct physician supervision.
+    </div>
+
+    <div class="form-group">
+        <label for="currentDose">Current Daily Warfarin Dose (mg)</label>
+        <input type="number" id="currentDose" step="0.1" placeholder="e.g., 5.0" min="0">
+    </div>
+
+    <div class="form-group">
+        <label for="inrValue">Recent INR Result</label>
+        <input type="number" id="inrValue" step="0.01" placeholder="e.g., 2.4" min="0">
+    </div>
+
+    <button class="btn" onclick="calculateDose()">Calculate Recommendation</button>
+
+    <div id="resultCard" class="result-card">
+        <div id="resultStatus" class="result-status"></div>
+        <div id="resultInstruction" class="result-instruction"></div>
+    </div>
+</div>
+
+<script>
+    function calculateDose() {
+        const currentDose = parseFloat(document.getElementById('currentDose').value);
+        const inr = parseFloat(document.getElementById('inrValue').value);
+        
+        const resultCard = document.getElementById('resultCard');
+        const resultStatus = document.getElementById('resultStatus');
+        const resultInstruction = document.getElementById('resultInstruction');
+
+        // Reset styling classes
+        resultCard.className = "result-card";
+
+        // Input Validation Guardrails
+        if (isNaN(currentDose) || isNaN(inr) || currentDose <= 0 || inr <= 0) {
+            resultCard.classList.add('status-critical');
+            resultStatus.innerText = "Invalid Input";
+            resultInstruction.innerText = "Please enter valid numbers greater than 0 for both fields.";
+            return;
+        }
+
+        // Target Range: 2.0 - 3.0 Clinical Dosing Logic Matrix
+        if (inr < 1.5) {
+            // Critically low therapeutic window
+            resultCard.classList.add('status-critical');
+            resultStatus.innerText = "CRITICAL: Sub-Therapeutic (INR < 1.5)";
+            resultInstruction.innerHTML = `<strong>Action Required:</strong> Contact your clinic or provider immediately.<br><br>The blood is clotting too quickly. You may require a temporary booster dose or bridging medication.`;
+        
+        } else if (inr >= 1.5 && inr <= 1.9) {
+            // Moderately low therapeutic window - Increase weekly dose by 15%
+            const newDose = (currentDose * 1.15).toFixed(2);
+            resultCard.classList.add('status-modifying');
+            resultStatus.innerText = "Low Range (INR 1.5 - 1.9)";
+            resultInstruction.innerHTML = `Increase total weekly dose by approximately 15%.<br><br><strong>Estimated New Daily Dose:</strong> ${newDose} mg.<br><em>Re-check INR in 1 to 2 weeks.</em>`;
+        
+        } else if (inr >= 2.0 && inr <= 3.0) {
+            // Target Therapeutic Window Achieved
+            resultCard.classList.add('status-in-range');
+            resultStatus.innerText = "IN TARGET RANGE (INR 2.0 - 3.0)";
+            resultInstruction.innerHTML = `No change needed. Maintain your current regimen.<br><br><strong>Current Daily Dose:</strong> ${currentDose} mg.<br><em>Repeat standard tracking INR in 2 to 4 weeks.</em>`;
+        
+        } else if (inr >= 3.1 && inr <= 4.0) {
+            // Moderately elevated therapeutic window - Decrease weekly dose by 15%
+            const newDose = (currentDose * 0.85).toFixed(2);
+            resultCard.classList.add('status-modifying');
+            resultStatus.innerText = "Elevated Range (INR 3.1 - 4.0)";
+            resultInstruction.innerHTML = `Decrease total weekly dose by approximately 15%.<br><br><strong>Estimated New Daily Dose:</strong> ${newDose} mg.<br><em>Re-check INR in 1 to 2 weeks.</em>`;
+        
+        } else if (inr >= 4.1 && inr <= 5.0) {
+            // Highly elevated therapeutic window
+            const newDose = (currentDose * 0.80).toFixed(2);
+            resultCard.classList.add('status-critical');
+            resultStatus.innerText = "WARNING: Highly Elevated (INR 4.1 - 5.0)";
+            resultInstruction.innerHTML = `<strong>Action Required:</strong> Hold (skip) your next scheduled dose entirely.<br><br>Reduce your subsequent daily doses to approximately 80% of current levels (<strong>Estimated: ${newDose} mg</strong>). Retest INR within 48 to 72 hours.`;
+        
+        } else if (inr > 5.0) {
+            // Critical Emergency Boundary
+            resultCard.classList.add('status-critical');
+            resultStatus.innerText = "EMERGENCY: Critical Bleeding Risk (INR > 5.0)";
+            resultInstruction.innerHTML = `<strong>STOP TAKING WARFARIN IMMEDIATELY.</strong><br><br>Do not take any further doses. Contact your healthcare provider, go to the nearest emergency clinic, or seek medical attention right away due to high bleeding risk.`;
+        }
+    }
+</script>
+
+</body>
+</html>
